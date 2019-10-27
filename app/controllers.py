@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import pathlib
 from app import helpers
 import logging
+from flask import send_file
 
 app = Flask(__name__)
 app.config.from_envvar('FLASK_CONFIG_FILE')
@@ -14,6 +15,20 @@ app.logger.setLevel(logging.DEBUG)
 
 mongo = PyMongo(app)
 jwt = JWTManager(app)
+
+
+# file_type is either resolution or news-article
+# relies on files being stored on host server, same for uploads
+@app.route("/api/files/<file_type>/<file_name>", methods=['GET'])
+def get_file(file_type, file_name):
+    try:
+        if file_type == 'resolution':
+            return send_file(os.path.join(app.config['RESOLUTION_DIRECTORY'], file_name), attachment_filename=file_name)
+        elif file_type == 'news-article':
+            return send_file(os.path.join(app.config['NEWS_DIRECTORY'], file_name), attachment_filename=file_name)
+    except Exception:
+        app.log_exception(Exception)
+        return jsonify({"msg": "Something went wrong"}), 400
 
 
 # queryParam resolution=True to change upload directory to the resolutions directory
@@ -34,7 +49,7 @@ def upload_file():
                 "fileName": filename,
                 "fileLocation": pathlib.Path(app.config['RESOLUTION_DIRECTORY']).as_uri()
             }), 200
-        else:
+        elif bool(request.args.get('news-article')) is True:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['NEWS_DIRECTORY'], filename))
             return jsonify({
@@ -111,7 +126,7 @@ def process_committees():
 
 # same rules as method above
 @app.route("/api/newsroom", methods=['POST','PUT'])
-@jwt_required
+# @jwt_required
 def process_newsroom():
     if request.method == 'POST':
         return jsonify({"msg": "Only PUT method is implemented at this moment."}), 405
