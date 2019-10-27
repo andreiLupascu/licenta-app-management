@@ -64,6 +64,33 @@ def read_committees():
     return committee_to_json
 
 
+# query-able by title or tags, tags go as ?tags=example&tags=example2 etc
+@app.route("/api/newsroom", methods=['GET'])
+def read_newsroom():
+    title = request.args.get('title')
+    tags = request.args.getlist('tags')
+    if title:
+        news_article = mongo.db.newsroom.find({"title": title})
+        article_to_json = dumps(news_article)
+    elif tags:
+        news_articles = []
+        for tag in tags:
+            news_article = mongo.db.newsroom.find({'tags': tag})
+            news_articles.append(news_article)
+        flat_list_of_articles = helpers.flatten(news_articles)
+        titles = []
+        set_of_articles = []
+        for article in flat_list_of_articles:
+            if article['title'] not in titles:
+                set_of_articles.append(article)
+                titles.append(article['title'])
+        article_to_json = dumps(set_of_articles)
+    else:
+        news_articles = mongo.db.newsroom.find()
+        article_to_json = dumps(news_articles)
+    return article_to_json
+
+
 # takes entire JSON object and upserts given mongoDB document with id as query field(IDs change = bad)
 @app.route("/api/committees", methods=['POST', 'PUT'])
 @jwt_required
