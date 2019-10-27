@@ -8,11 +8,12 @@ import pathlib
 from app import helpers
 import logging
 from flask import send_file
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_envvar('FLASK_CONFIG_FILE')
 app.logger.setLevel(logging.DEBUG)
-
+CORS(app)
 mongo = PyMongo(app)
 jwt = JWTManager(app)
 
@@ -128,7 +129,7 @@ def process_committees():
 
 # same rules as method above
 @app.route("/api/newsroom", methods=['POST', 'PUT'])
-# @jwt_required
+@jwt_required
 def process_newsroom():
     if request.method == 'POST':
         return jsonify({"msg": "Only PUT method is implemented at this moment."}), 405
