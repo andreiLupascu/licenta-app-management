@@ -92,6 +92,7 @@ def read_newsroom():
 
 
 # takes entire JSON object and upserts given mongoDB document with id as query field(IDs change = bad)
+# only works with 1 committee at a time ( frontend should submit committee updates from each committee's page
 @app.route("/api/committees", methods=['POST', 'PUT'])
 @jwt_required
 def process_committees():
@@ -102,6 +103,23 @@ def process_committees():
             committee = request.get_json()
             committee_dict = loads(dumps(committee))
             mongo.db.committee.update({'id': committee_dict['id']}, committee_dict, True)
+            return jsonify({"msg": "Update successful"}), 200
+        except Exception:
+            app.log_exception(Exception)
+            return jsonify({"msg": "Something went wrong"}), 400
+
+
+# same rules as method above
+@app.route("/api/newsroom", methods=['POST','PUT'])
+@jwt_required
+def process_newsroom():
+    if request.method == 'POST':
+        return jsonify({"msg": "Only PUT method is implemented at this moment."}), 405
+    elif request.method == 'PUT':
+        try:
+            article = request.get_json()
+            article_dict = loads(dumps(article))
+            mongo.db.newsroom.update({'id': article_dict['id']}, article_dict, True)
             return jsonify({"msg": "Update successful"}), 200
         except Exception:
             app.log_exception(Exception)
