@@ -23,9 +23,11 @@ jwt = JWTManager(app)
 def get_file(file_type, file_name):
     try:
         if file_type == 'resolution':
-            return send_file(os.path.join(app.config['RESOLUTION_DIRECTORY'], file_name), attachment_filename=file_name)
+            return send_file(os.path.join(app.config['RESOLUTION_DIRECTORY'], file_name), mimetype='application/pdf',
+                             attachment_filename=file_name)
         elif file_type == 'news-article':
-            return send_file(os.path.join(app.config['NEWS_DIRECTORY'], file_name), attachment_filename=file_name)
+            return send_file(os.path.join(app.config['NEWS_DIRECTORY'], file_name), mimetype='application/pdf',
+                             attachment_filename=file_name)
     except Exception:
         app.log_exception(Exception)
         return jsonify({"msg": "Something went wrong"}), 400
@@ -125,7 +127,7 @@ def process_committees():
 
 
 # same rules as method above
-@app.route("/api/newsroom", methods=['POST','PUT'])
+@app.route("/api/newsroom", methods=['POST', 'PUT'])
 # @jwt_required
 def process_newsroom():
     if request.method == 'POST':
