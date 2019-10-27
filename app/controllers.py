@@ -4,14 +4,17 @@ from flask_pymongo import PyMongo
 import os
 from bson.json_util import dumps, loads
 from werkzeug.utils import secure_filename
-import uuid
+import pathlib
 from app import helpers
+import logging
 
 app = Flask(__name__)
 app.config.from_envvar('FLASK_CONFIG_FILE')
+app.logger.setLevel(logging.DEBUG)
 
 mongo = PyMongo(app)
 jwt = JWTManager(app)
+
 
 # queryParam resolution=True to change upload directory to the resolutions directory
 @app.route("/api/files/upload", methods=['POST'])
@@ -22,28 +25,31 @@ def upload_file():
     file = request.files['file']
     if file.filename == '':
         return jsonify({"msg": "No file selected for upload."}), 400
-    if file and helpers.pdf_file_check(file.filename):
+    if file and helpers.pdf_file_check(file.filename) and file.content_type == "application/pdf":
         if bool(request.args.get('resolution')) is True:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['RESOLUTION_DIRECTORY'], filename))
             return jsonify({
                 "msg": "Resolution saved successfully!",
-                "fileName": filename
+                "fileName": filename,
+                "fileLocation": pathlib.Path(app.config['RESOLUTION_DIRECTORY']).as_uri()
             }), 200
         else:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['NEWS_DIRECTORY'], filename))
             return jsonify({
                 "msg": "News article saved successfully!",
-                "fileName": filename
+                "fileName": filename,
+                "fileLocation": pathlib.Path(app.config['NEWS_DIRECTORY']).as_uri()
             }), 200
     else:
-        print(file.filename)
+        app.logger.info(file.filename)
         return jsonify({"msg": "Selected file extension is not allowed."}), 400
 
-#query-able by title or by committee id, not both yet :)
+
+# query-able by title or by committee id, not both yet :)
 @app.route("/api/committees", methods=['GET'])
-def committees():
+def read_committees():
     title = request.args.get('title')
     committee_id = request.args.get('id')
     if title:
@@ -56,6 +62,23 @@ def committees():
         committee = mongo.db.committee.find()
         committee_to_json = dumps(committee)
     return committee_to_json
+
+
+# takes entire JSON object and upserts given mongoDB document with id as query field(IDs change = bad)
+@app.route("/api/committees", methods=['POST', 'PUT'])
+@jwt_required
+def process_committees():
+    if request.method == 'POST':
+        return jsonify({"msg": "Only PUT method is implemented at this moment."}), 405
+    elif request.method == 'PUT':
+        try:
+            committee = request.get_json()
+            committee_dict = loads(dumps(committee))
+            mongo.db.committee.update({'id': committee_dict['id']}, committee_dict, True)
+            return jsonify({"msg": "Update successful"}), 200
+        except Exception:
+            app.log_exception(Exception)
+            return jsonify({"msg": "Something went wrong"}), 400
 
 
 if __name__ == '__main__':
