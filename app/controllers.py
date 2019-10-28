@@ -35,7 +35,7 @@ def get_file(file_type, file_name):
 
 
 # returns all file names for given type, used internally in the admin front-end
-@app.route("/api/files/<file_type>/names")
+@app.route("/api/files/<file_type>/names", methods=['GET'])
 @jwt_required
 def get_file_names(file_type):
     try:
