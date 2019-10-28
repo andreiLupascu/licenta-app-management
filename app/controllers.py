@@ -34,14 +34,32 @@ def get_file(file_type, file_name):
         return jsonify({"msg": "Something went wrong"}), 400
 
 
+# returns all file names for given type, used internally in the admin front-end
+@app.route("/api/files/<file_type>/names")
+@jwt_required
+def get_file_names(file_type):
+    try:
+        if file_type == 'resolution':
+            file_list = os.listdir(os.path.join(app.config['RESOLUTION_DIRECTORY']))
+            return jsonify(file_list)
+        elif file_type == 'news-article':
+            file_list = os.listdir(os.path.join(app.config['NEWS_DIRECTORY']))
+            return jsonify(file_list)
+    except Exception:
+        app.log_exception(Exception)
+        return jsonify({"msg": "Something went wrong"}), 500
+
+
 # queryParam resolution=True to change upload directory to the resolutions directory
 @app.route("/api/files/upload", methods=['POST'])
 @jwt_required
 def upload_file():
     if 'file' not in request.files:
+        app.logger.info(request)
         return jsonify({"msg": "Not a valid file upload."}), 400
     file = request.files['file']
     if file.filename == '':
+        app.logger.info(request)
         return jsonify({"msg": "No file selected for upload."}), 400
     if file and helpers.pdf_file_check(file.filename) and file.content_type == "application/pdf":
         if bool(request.args.get('resolution')) is True:
@@ -61,6 +79,7 @@ def upload_file():
                 "fileLocation": pathlib.Path(app.config['NEWS_DIRECTORY']).as_uri()
             }), 200
         else:
+            app.logger.info(request)
             return jsonify({"msg": "Must either pass ?resolution=true or ?news-article=true as params."}), 400
     else:
         app.logger.info(file.filename)
