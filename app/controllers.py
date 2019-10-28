@@ -39,7 +39,7 @@ def get_file(file_type, file_name):
 @jwt_required
 def upload_file():
     if 'file' not in request.files:
-        return jsonify({"msg": "No file part in request."}), 400
+        return jsonify({"msg": "Not a valid file upload."}), 400
     file = request.files['file']
     if file.filename == '':
         return jsonify({"msg": "No file selected for upload."}), 400
@@ -60,6 +60,8 @@ def upload_file():
                 "fileName": filename,
                 "fileLocation": pathlib.Path(app.config['NEWS_DIRECTORY']).as_uri()
             }), 200
+        else:
+            return jsonify({"msg": "Must either pass ?resolution=true or ?news-article=true as params."}), 400
     else:
         app.logger.info(file.filename)
         return jsonify({"msg": "Selected file extension is not allowed."}), 400
