@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 import pathlib
 from app import helpers
 import logging
-from flask import send_file
+from flask import send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -24,11 +24,13 @@ jwt = JWTManager(app)
 def get_file(file_type, file_name):
     try:
         if file_type == 'resolution':
-            return send_file(os.path.join(app.config['RESOLUTION_DIRECTORY'], file_name), mimetype='application/pdf',
-                             attachment_filename=file_name)
+            return send_from_directory(os.path.join(app.config['RESOLUTION_DIRECTORY']),
+                                       mimetype='application/pdf',
+                                       filename=file_name)
         elif file_type == 'news-article':
-            return send_file(os.path.join(app.config['NEWS_DIRECTORY'], file_name), mimetype='application/pdf',
-                             attachment_filename=file_name)
+            return send_from_directory(os.path.join(app.config['NEWS_DIRECTORY']),
+                                       mimetype='application/pdf',
+                                       filename=file_name)
     except Exception:
         app.log_exception(Exception)
         return jsonify({"msg": "Something went wrong"}), 400
@@ -108,6 +110,7 @@ def read_committees():
 def read_newsroom():
     title = request.args.get('title')
     tags = request.args.getlist('tags')
+    id = request.args.get('id')
     if title:
         news_article = mongo.db.newsroom.find({"title": title})
         article_to_json = dumps(news_article)
@@ -124,6 +127,9 @@ def read_newsroom():
                 set_of_articles.append(article)
                 titles.append(article['title'])
         article_to_json = dumps(set_of_articles)
+    elif id:
+        news_article = mongo.db.newsroom.find({"id": id})
+        article_to_json = dumps(news_article)
     else:
         news_articles = mongo.db.newsroom.find()
         article_to_json = dumps(news_articles)
