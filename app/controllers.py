@@ -164,7 +164,8 @@ def process_newsroom():
         try:
             article = request.get_json()
             article_dict = loads(dumps(article))
-            mongo.db.newsroom.update({'id': article_dict['id']}, article_dict, True)
+            for article in article_dict:
+                mongo.db.newsroom.update({'id': article['id']}, article, True)
             return jsonify({"msg": "Update successful"}), 200
         except Exception:
             app.log_exception(Exception)
